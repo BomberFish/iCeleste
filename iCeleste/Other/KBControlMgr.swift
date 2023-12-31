@@ -5,6 +5,7 @@
 import SwiftUI
 import OSLog
 
+#if os(macOS)
 class KBControlMgr {
     private static let pollingInterval: DispatchTimeInterval = .milliseconds(50)
     private static let pollingQueue = DispatchQueue.main
@@ -100,3 +101,4 @@ class KBControlMgr {
         scheduleNextPoll(on: pollingQueue)
     }
 }
+#endif
