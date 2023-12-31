@@ -5,7 +5,6 @@
 import SwiftUI
 
 struct EpicButton: ViewModifier {
-//    @Environment(\.colorScheme) var colorScheme
     let color: Color
     func body(content: Content) -> some View {
         content
@@ -17,8 +16,14 @@ struct EpicButton: ViewModifier {
 }
 
 extension View {
-  func epicButton(color: Color = Color(.secondarySystemBackground))
-    -> some View {
-      modifier(EpicButton(color: color))
-  }
+    #if os(macOS)
+
+    func epicButton(color: Color = Color(NSColor.windowBackgroundColor)) -> some View {
+        modifier(EpicButton(color: color))
+    }
+    #else
+    func epicButton(color: Color = Color(UIColor.secondarySystemBackground)) -> some View {
+        modifier(EpicButton(color: color))
+    }
+    #endif
 }

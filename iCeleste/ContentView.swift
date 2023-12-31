@@ -3,30 +3,29 @@
 // created on 2023-12-30
 
 import SwiftUI
+import SwiftUIBackports
+
+func playActionHaptic() {
+#if !os(macOS)
+let generator = UIImpactFeedbackGenerator(style: .rigid)
+generator.impactOccurred(intensity: 100)
+#endif
+}
+
+func playDpadHaptic(_ release: Bool = false) {
+    #if !os(macOS)
+    let generator = UIImpactFeedbackGenerator(style: release ? .medium : .light)
+    generator.impactOccurred(intensity: 100)
+    #endif
+}
 
 struct ContentView: View {
     @AppStorage("reversedControls") var reversedControls: Bool = false
+    @AppStorage("reversedActions") var reversedActions: Bool = false
     @AppStorage("swagMode") var swagMode: Bool = true
+    @AppStorage("swagMode") var swagLevel: Double = 0.2
     @State var screenUIImage: UIImage = .init(pixels: [PixelData(a: 255, r: 0, g: 0, b: 0)], width: 1, height: 1)!
-
-    @State var dragOffset = CGSize.zero {
-        willSet {
-            librustic_set_btn(0, 0) // left
-            librustic_set_btn(1, 0) // right
-            librustic_set_btn(2, 0) // up
-            librustic_set_btn(3, 0) // down
-            if newValue.height < -15 {
-                librustic_set_btn(2, 1)
-            } else if newValue.height > 15 {
-                librustic_set_btn(3, 1)
-            }
-            if newValue.width < -15 {
-                librustic_set_btn(0, 1)
-            } else if newValue.width > 15 {
-                librustic_set_btn(1, 1)
-            }
-        }
-    }
+    @State var showingSettings = false
 
     func ptrToPixelData(pixels: UnsafeMutableRawPointer) -> [PixelData] {
         let buf = pixels.bindMemory(to: UInt8.self, capacity: 128*128)
@@ -41,17 +40,7 @@ struct ContentView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.033) {
             librustic_set_btn(CChar(btn), 0)
         }
-        #if !os(macOS)
-        let generator = UIImpactFeedbackGenerator(style: .rigid)
-        generator.impactOccurred(intensity: 100)
-        #endif
-    }
-    
-    func playDpadHaptic(_ release: Bool = false) {
-        #if !os(macOS)
-        let generator = UIImpactFeedbackGenerator(style: release ? .medium : .light)
-        generator.impactOccurred(intensity: 100)
-        #endif
+        
     }
 
     @ViewBuilder
@@ -104,14 +93,45 @@ struct ContentView: View {
     @ViewBuilder
     var actions: some View {
         Group {
-            Button("", systemImage: "arrow.up.to.line") {
-                softButtonClick(4)
+            Button("", systemImage: "arrow.up.to.line") {}
+            .pressAction {
+                librustic_set_btn(4, 1)
+                playActionHaptic()
+            } onRelease: {
+                librustic_set_btn(4, 0)
             }
             .epicButton(color: .blue)
-            Button("", systemImage: "arrow.left.to.line.compact") {
-                softButtonClick(5)
+            Button("", systemImage: "arrow.left.to.line.compact") {}
+            .pressAction {
+                librustic_set_btn(5, 1)
+                playActionHaptic()
+            } onRelease: {
+                librustic_set_btn(5, 0)
             }
             .epicButton(color: .red)
+        }
+        .controlSize(.large)
+    }
+    
+    @ViewBuilder
+    var actionsReversed: some View {
+        Group {
+            Button("", systemImage: "arrow.left.to.line.compact") {}
+            .pressAction {
+                librustic_set_btn(5, 1)
+                playActionHaptic()
+            } onRelease: {
+                librustic_set_btn(5, 0)
+            }
+            .epicButton(color: .red)
+            Button("", systemImage: "arrow.up.to.line") {}
+            .pressAction {
+                librustic_set_btn(4, 1)
+                playActionHaptic()
+            } onRelease: {
+                librustic_set_btn(4, 0)
+            }
+            .epicButton(color: .blue)
         }
         .controlSize(.large)
     }
@@ -119,64 +139,146 @@ struct ContentView: View {
     @ViewBuilder
     var buttons: some View {
         HStack {
-            if reversedControls { actions } else { dpad }
+            if reversedControls { if reversedActions {actionsReversed} else {actions} } else { dpad }
             Spacer()
-            if reversedControls { dpad } else { actions }
+            if reversedControls { dpad } else { if reversedActions {actionsReversed} else {actions} }
         }
     }
-    
+
     @ViewBuilder
     var controls: some View {
         buttons
         Spacer()
-        Toggle("Reversed Controls", isOn: $reversedControls)
-        Toggle("Blurred background", isOn: $swagMode)
+        Button("Settings", systemImage: "gear") {
+            showingSettings.toggle()
+        }
+        .controlSize(.large)
+        .buttonStyle(.bordered)
+        .tint(.accentColor)
+    }
+    
+    @ViewBuilder
+    var background: some View {
+        #if os(macOS)
+        let bounds: CGRect = NSApplication.shared.windows.first?.contentView?.bounds ?? .zero
+        #else
+        let bounds: CGRect = (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.windows.first?.bounds ?? .zero
+        #endif
+        if swagMode {
+            Image(uiImage: screenUIImage)
+                .resizable()
+                .blur(radius: 16)
+                .ignoresSafeArea(.all)
+                .aspectRatio(contentMode: .fill)
+                .frame(minWidth: bounds.width, maxWidth: .infinity, minHeight: bounds.height, maxHeight: .infinity)
+                .overlay {
+                    Color.black.opacity(1 - swagLevel)
+                        .ignoresSafeArea(.all)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .animation(.easeInOut(duration: 0.35), value: swagMode)
+        }
     }
 
     var body: some View {
-            
-            VStack {
-                Image(uiImage: screenUIImage)
-                    .interpolation(.none) // fix blurriness
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .padding()
-                    .task {
-                        let map_p = UnsafeMutablePointer<CChar>(mutating: MAPDATA.utf8String)
-                        let sprites_p = UnsafeMutablePointer<CChar>(mutating: SPRITES.utf8String)
-                        let flags_p = UnsafeMutablePointer<CChar>(mutating: FLAGS.utf8String)
-                        let fontatlas_p = UnsafeMutablePointer<CChar>(mutating: FONTATLAS.utf8String)
-                        librustic_start(map_p, sprites_p, flags_p, fontatlas_p)
-                        Timer.scheduledTimer(withTimeInterval: 0.033, repeats: true, block: { _ in
-                            librustic_next_tick()
-                            let screen = ptrToPixelData(pixels: librustic_render_screen())
-                            screenUIImage = UIImage(pixels: screen, width: 128, height: 128) ?? screenUIImage
-                        })
-                    }
-                // TODO: Keyboard controls on macOS
-                controls
+        VStack {
+            Image(uiImage: screenUIImage)
+                .interpolation(.none) // fix blurriness
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+#if !os(macOS)
+                .padding()
+#endif
+                .task {
+                    let map_p = UnsafeMutablePointer<CChar>(mutating: MAPDATA.utf8String)
+                    let sprites_p = UnsafeMutablePointer<CChar>(mutating: SPRITES.utf8String)
+                    let flags_p = UnsafeMutablePointer<CChar>(mutating: FLAGS.utf8String)
+                    let fontatlas_p = UnsafeMutablePointer<CChar>(mutating: FONTATLAS.utf8String)
+                    librustic_start(map_p, sprites_p, flags_p, fontatlas_p)
+                    Timer.scheduledTimer(withTimeInterval: 0.033, repeats: true, block: { _ in
+                        librustic_next_tick()
+                        let screen = ptrToPixelData(pixels: librustic_render_screen())
+                        screenUIImage = UIImage(pixels: screen, width: 128, height: 128) ?? screenUIImage
+                    })
+                }
+            #if !os(macOS)
+            controls
+            #endif
+        }
+#if !os(macOS)
+        .padding()
+#endif
+        .background {
+            background
+        }
+        #if !os(macOS)
+        .sheet(isPresented: $showingSettings) {
+            if #available(iOS 16.0, *) {
+                SettingsView()
+                    .presentationDetents([.medium, .large])
+            } else {
+                SettingsView()
+                    .backport.presentationDetents([.medium, .large])
             }
-            .padding()
-            .preferredColorScheme(swagMode ? .dark : .none) // blurred bg absolutely breaks everything in light mode
-            .background {
-                if swagMode {
-                    Image(uiImage: screenUIImage)
-                        .resizable()
-                        .blur(radius: 16)
-                        .ignoresSafeArea(.all)
-                        .aspectRatio(contentMode: .fill)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .overlay {
-                            Color.black.opacity(0.4)
-                                .ignoresSafeArea(.all)
-                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        #endif
+        .animation(.easeInOut(duration: 0.35), value: swagMode)
+        .animation(.easeInOut(duration: 0.35), value: reversedControls)
+    }
+}
+
+struct SettingsView: View {
+    @AppStorage("reversedControls") var reversedControls: Bool = false
+    @AppStorage("reversedActions") var reversedActions: Bool = false
+    @AppStorage("swagMode") var swagMode: Bool = true
+    @AppStorage("swagMode") var swagLevel: Double = 0.25
+    
+    @Environment(\.dismiss) var d
+    var body: some View {
+        VStack {
+#if !os(macOS)
+            Text("Settings")
+                .bold()
+                .padding(.top, 20)
+#endif
+            List {
+
+                Section("Controls") {
+#if !os(macOS)
+                    Toggle("Reversed Controls", isOn: $reversedControls)
+#endif
+                    Toggle("Swap Dash and Jump", isOn: $reversedActions)
+                }
+                Section("Appearance") {
+                    Toggle("Blurred background", isOn: $swagMode)
+                    if swagMode {
+                        HStack {
+                            Text("Intensity")
+                            Slider(value: $swagLevel, in: 0...1, step: 0.1) {}
+                            .onChange(of: swagLevel) { _ in
+                                playDpadHaptic()
+                            }
+                            Button(action: {swagLevel = 0.2}, label: {
+                                Image(systemName: "arrow.counterclockwise")
+                            })
                         }
-                        .animation(.easeInOut(duration: 0.35), value: swagMode)
+                    }
                 }
             }
-            .animation(.easeInOut(duration: 0.35), value: swagMode)
-            .animation(.easeInOut(duration: 0.35), value: reversedControls)
+#if !os(macOS)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        d()
+                    }
+                }
+            }
+#endif
         }
+#if !os(macOS)
+        .background(Color(UIColor.systemGroupedBackground))
+        #endif
+    }
 }
 
 #Preview {

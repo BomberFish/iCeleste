@@ -8,6 +8,6 @@ Based on work by [r58playz](https://github.com/r58Playz).
 ## Platforms
 
 - iOS: Perfect support
-- macOS: Near-perfect support. Missing keyboard controls
-- watchOS: Untested.
+- macOS: Perfect support
+- watchOS: Untested, uses code from [watchleste](https://github.com/r58Playz/watchleste)
 - visionOS: ...why?
