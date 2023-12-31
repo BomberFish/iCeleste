@@ -145,6 +145,7 @@ struct ContentView: View {
 
     @ViewBuilder
     var controls: some View {
+        Spacer()
         buttons
         Spacer()
         Button("Settings", systemImage: "gear") {
@@ -271,6 +272,7 @@ struct SettingsView: View {
         #if !os(macOS)
         .background(Color(UIColor.systemGroupedBackground))
         #endif
+        .tint(.accentColor)
     }
 }
 
