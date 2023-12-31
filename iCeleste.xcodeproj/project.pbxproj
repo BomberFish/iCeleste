@@ -34,6 +34,7 @@
 		D665D2252B41E99A006E861A /* SwiftUIBackports in Frameworks */ = {isa = PBXBuildFile; productRef = D665D2242B41E99A006E861A /* SwiftUIBackports */; };
 		D665D2272B41EEBC006E861A /* CGKeyCode+KeyPress.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665D2262B41EEBC006E861A /* CGKeyCode+KeyPress.swift */; };
 		D665D22B2B41EF45006E861A /* KBControlMgr.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665D22A2B41EF45006E861A /* KBControlMgr.swift */; };
+		D665D22D2B41FB18006E861A /* View+PlatformAppropriateToggle.swift in Sources */ = {isa = PBXBuildFile; fileRef = D665D22C2B41FB18006E861A /* View+PlatformAppropriateToggle.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -122,6 +123,7 @@
 		D665D21F2B41248E006E861A /* View+epicButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+epicButton.swift"; sourceTree = "<group>"; };
 		D665D2262B41EEBC006E861A /* CGKeyCode+KeyPress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CGKeyCode+KeyPress.swift"; sourceTree = "<group>"; };
 		D665D22A2B41EF45006E861A /* KBControlMgr.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KBControlMgr.swift; sourceTree = "<group>"; };
+		D665D22C2B41FB18006E861A /* View+PlatformAppropriateToggle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+PlatformAppropriateToggle.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -294,6 +296,7 @@
 			children = (
 				D665D2262B41EEBC006E861A /* CGKeyCode+KeyPress.swift */,
 				D665D21F2B41248E006E861A /* View+epicButton.swift */,
+				D665D22C2B41FB18006E861A /* View+PlatformAppropriateToggle.swift */,
 				D665D21D2B412031006E861A /* Button+pressAction.swift */,
 				D665D2152B41146E006E861A /* UIImage+PixelData.swift */,
 				D665D2172B41159B006E861A /* macOS+UIImage.swift */,
@@ -552,6 +555,7 @@
 				D665D2162B41146E006E861A /* UIImage+PixelData.swift in Sources */,
 				D665D2142B411451006E861A /* MapData.swift in Sources */,
 				D665D22B2B41EF45006E861A /* KBControlMgr.swift in Sources */,
+				D665D22D2B41FB18006E861A /* View+PlatformAppropriateToggle.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

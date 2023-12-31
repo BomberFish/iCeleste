@@ -6,10 +6,10 @@ import SwiftUI
 import SwiftUIBackports
 
 func playActionHaptic() {
-#if !os(macOS)
-let generator = UIImpactFeedbackGenerator(style: .rigid)
-generator.impactOccurred(intensity: 100)
-#endif
+    #if !os(macOS)
+    let generator = UIImpactFeedbackGenerator(style: .rigid)
+    generator.impactOccurred(intensity: 100)
+    #endif
 }
 
 func playDpadHaptic(_ release: Bool = false) {
@@ -26,7 +26,6 @@ struct ContentView: View {
     @AppStorage("swagMode") var swagLevel: Double = 0.2
     @State var screenUIImage: UIImage = .init(pixels: [PixelData(a: 255, r: 0, g: 0, b: 0)], width: 1, height: 1)!
     @State var showingSettings = false
-
     func ptrToPixelData(pixels: UnsafeMutableRawPointer) -> [PixelData] {
         let buf = pixels.bindMemory(to: UInt8.self, capacity: 128*128)
         let arr = Array(UnsafeBufferPointer(start: buf, count: 128*128))
@@ -37,10 +36,9 @@ struct ContentView: View {
 
     func softButtonClick(_ btn: Int) {
         librustic_set_btn(CChar(btn), 1)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.033) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0 / 30.0) {
             librustic_set_btn(CChar(btn), 0)
         }
-        
     }
 
     @ViewBuilder
@@ -94,44 +92,44 @@ struct ContentView: View {
     var actions: some View {
         Group {
             Button("", systemImage: "arrow.up.to.line") {}
-            .pressAction {
-                librustic_set_btn(4, 1)
-                playActionHaptic()
-            } onRelease: {
-                librustic_set_btn(4, 0)
-            }
-            .epicButton(color: .blue)
+                .pressAction {
+                    librustic_set_btn(4, 1)
+                    playActionHaptic()
+                } onRelease: {
+                    librustic_set_btn(4, 0)
+                }
+                .epicButton(color: .blue)
             Button("", systemImage: "arrow.left.to.line.compact") {}
-            .pressAction {
-                librustic_set_btn(5, 1)
-                playActionHaptic()
-            } onRelease: {
-                librustic_set_btn(5, 0)
-            }
-            .epicButton(color: .red)
+                .pressAction {
+                    librustic_set_btn(5, 1)
+                    playActionHaptic()
+                } onRelease: {
+                    librustic_set_btn(5, 0)
+                }
+                .epicButton(color: .red)
         }
         .controlSize(.large)
     }
-    
+
     @ViewBuilder
     var actionsReversed: some View {
         Group {
             Button("", systemImage: "arrow.left.to.line.compact") {}
-            .pressAction {
-                librustic_set_btn(5, 1)
-                playActionHaptic()
-            } onRelease: {
-                librustic_set_btn(5, 0)
-            }
-            .epicButton(color: .red)
+                .pressAction {
+                    librustic_set_btn(5, 1)
+                    playActionHaptic()
+                } onRelease: {
+                    librustic_set_btn(5, 0)
+                }
+                .epicButton(color: .red)
             Button("", systemImage: "arrow.up.to.line") {}
-            .pressAction {
-                librustic_set_btn(4, 1)
-                playActionHaptic()
-            } onRelease: {
-                librustic_set_btn(4, 0)
-            }
-            .epicButton(color: .blue)
+                .pressAction {
+                    librustic_set_btn(4, 1)
+                    playActionHaptic()
+                } onRelease: {
+                    librustic_set_btn(4, 0)
+                }
+                .epicButton(color: .blue)
         }
         .controlSize(.large)
     }
@@ -139,9 +137,9 @@ struct ContentView: View {
     @ViewBuilder
     var buttons: some View {
         HStack {
-            if reversedControls { if reversedActions {actionsReversed} else {actions} } else { dpad }
+            if reversedControls { if reversedActions { actionsReversed } else { actions } } else { dpad }
             Spacer()
-            if reversedControls { dpad } else { if reversedActions {actionsReversed} else {actions} }
+            if reversedControls { dpad } else { if reversedActions { actionsReversed } else { actions } }
         }
     }
 
@@ -156,7 +154,7 @@ struct ContentView: View {
         .buttonStyle(.bordered)
         .tint(.accentColor)
     }
-    
+
     @ViewBuilder
     var background: some View {
         #if os(macOS)
@@ -179,35 +177,30 @@ struct ContentView: View {
                 .animation(.easeInOut(duration: 0.35), value: swagMode)
         }
     }
-
+    
     var body: some View {
         VStack {
             Image(uiImage: screenUIImage)
                 .interpolation(.none) // fix blurriness
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-#if !os(macOS)
+            #if !os(macOS)
                 .padding()
-#endif
+            #endif
                 .task {
-                    let map_p = UnsafeMutablePointer<CChar>(mutating: MAPDATA.utf8String)
-                    let sprites_p = UnsafeMutablePointer<CChar>(mutating: SPRITES.utf8String)
-                    let flags_p = UnsafeMutablePointer<CChar>(mutating: FLAGS.utf8String)
-                    let fontatlas_p = UnsafeMutablePointer<CChar>(mutating: FONTATLAS.utf8String)
-                    librustic_start(map_p, sprites_p, flags_p, fontatlas_p)
-                    Timer.scheduledTimer(withTimeInterval: 0.033, repeats: true, block: { _ in
-                        librustic_next_tick()
-                        let screen = ptrToPixelData(pixels: librustic_render_screen())
-                        screenUIImage = UIImage(pixels: screen, width: 128, height: 128) ?? screenUIImage
-                    })
+//                    timer.connect()
+                }
+                .onReceive(timer) { tick in
+                    let screen = ptrToPixelData(pixels: librustic_render_screen())
+                    screenUIImage = UIImage(pixels: screen, width: 128, height: 128) ?? screenUIImage
                 }
             #if !os(macOS)
             controls
             #endif
         }
-#if !os(macOS)
+        #if !os(macOS)
         .padding()
-#endif
+        #endif
         .background {
             background
         }
@@ -232,40 +225,40 @@ struct SettingsView: View {
     @AppStorage("reversedActions") var reversedActions: Bool = false
     @AppStorage("swagMode") var swagMode: Bool = true
     @AppStorage("swagMode") var swagLevel: Double = 0.25
-    
+
     @Environment(\.dismiss) var d
     var body: some View {
         VStack {
-#if !os(macOS)
+            #if !os(macOS)
             Text("Settings")
                 .bold()
                 .padding(.top, 20)
-#endif
+            #endif
             List {
-
                 Section("Controls") {
-#if !os(macOS)
+                    #if !os(macOS)
                     Toggle("Reversed Controls", isOn: $reversedControls)
-#endif
+                    #endif
                     Toggle("Swap Dash and Jump", isOn: $reversedActions)
                 }
+                .platformAppropriateToggle()
                 Section("Appearance") {
                     Toggle("Blurred background", isOn: $swagMode)
                     if swagMode {
                         HStack {
                             Text("Intensity")
-                            Slider(value: $swagLevel, in: 0...1, step: 0.1) {}
-                            .onChange(of: swagLevel) { _ in
-                                playDpadHaptic()
-                            }
-                            Button(action: {swagLevel = 0.2}, label: {
+                            Slider(value: $swagLevel, in: 0 ... 1, step: 0.1) {}
+                                .onChange(of: swagLevel) { _ in
+                                    playDpadHaptic()
+                                }
+                            Button(action: { swagLevel = 0.2 }, label: {
                                 Image(systemName: "arrow.counterclockwise")
                             })
                         }
                     }
                 }
             }
-#if !os(macOS)
+            #if !os(macOS)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") {
@@ -273,9 +266,9 @@ struct SettingsView: View {
                     }
                 }
             }
-#endif
+            #endif
         }
-#if !os(macOS)
+        #if !os(macOS)
         .background(Color(UIColor.systemGroupedBackground))
         #endif
     }
